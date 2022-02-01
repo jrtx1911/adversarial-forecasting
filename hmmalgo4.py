@@ -19,15 +19,12 @@ import helpers
 
 
 # QUESTIONS:
-# IMPLEMENTED 0 BASED INDEXING FOR ALL VARIABLES: X,Y,P
-# Consider moving for A loop. Recalculating of alpha beta unncessary for each attack
-# Alpha and beta values constantly repeat. Is this expected? Verify accuracy of forward/backward pass algos
-# Is there a forward/backward pass example with numbers?
+# Time vs space complexity trade off when storing alpha/beta for all Y. This could be very large wiwth long observation sequence. Just store alpha of timeOfInterest
+# About hmmlearn, is frameprob simply X
 
 #NOTES:
 # IMPLEMENTED 0 BASED INDEXING FOR ALL VARIABLES: X,Y,P
 # Looking for alpha and beta of [timeOfInterest][n]
-
 
 
 #taken from http://www.adeveloperdiary.com/data-science/machine-learning/forward-and-backward-algorithm-in-hidden-markov-model/
@@ -35,12 +32,12 @@ def forwardPass(V, a, b, initial_distribution):
     alpha = np.zeros((V.shape[0], a.shape[0]))
     alpha[0, :] = initial_distribution * b[:, V[0]]
 
-    for t in range(1, V.shape[0]): # TODO: from 1 to timeOfInterest
+    for t in range(1, V.shape[0]):
         for j in range(a.shape[0]):
             # Matrix Computation Steps
             #                  ((1x2) . (1x2))      *     (1)
             #                        (1)            *     (1)
-            alpha[t, j] = alpha[t - 1].dot(a[:, j]) * b[j, V[t]-1]
+            alpha[t, j] = alpha[t - 1].dot(a[:, j]) * b[j, V[t]]
 
     return alpha
 
@@ -54,7 +51,7 @@ def backwardPass(V, a, b):
 
     # Loop in backward way from T-1 to
     # Due to python indexing the actual loop will be T-2 to 0
-    for t in range(V.shape[0] - 2, -1, -1): # TODO: from 5 to 3
+    for t in range(V.shape[0] - 2, -1, -1):
         for j in range(a.shape[0]):
             beta[t, j] = (beta[t + 1] * b[:, V[t + 1]]).dot(a[j, :])
 
@@ -64,32 +61,10 @@ def backwardPass(V, a, b):
 
 
 
-# obsLen is T. the length of obersvation. DEPRECATED
-def createA(obsLen): #only works for 2 states. Counts up in binary
-    max = pow(2, obsLen)
-    A = [] * obsLen
-    for i in range(max):
-        temp = str(bin(i))
-        temp = temp[2:]
-        tempLen = len(temp)
-        a = ""
-
-        for j in range(obsLen-tempLen):
-            a = a + '0'
-
-        tempLen = len(a)
-        for j in range(len(a),obsLen):
-            a = a + temp[j-tempLen]
-
-        A.append(a)
-
-    return A
-
-
 def create_seq(y, numStatesOfY, T):
     temp = helpers.convert_number_system(y, 10, numStatesOfY)
     templength = len(temp)
-    Y = np.zeros(T, dtype=np.int64)
+    Y = np.zeros(T, dtype=np.int64) #TODO: May need to increase num bits if Y is large
     i = T-templength
     for c in temp:
         Y[i] = ord(c)-48
@@ -242,35 +217,6 @@ upperLambda = [estimate1, estimate2]
 
 
 # X, number of model estimates, all attacker model estimates, attacker model, P, time of interest, cost
-a_star = algo4(X, 2, upperLambda, lowerLambda, P, 2, 0)
+a_star = algo4(X, 2, upperLambda, lowerLambda, P, 4, 0.00000003)
 
 print(a_star)
-
-
-
-
-
-##### TESTING BELOW ######
-
-# Y = 243
-#
-#
-#
-# for y in range(Y):
-#     y_list = create_y(y, 2, 5)
-#     tempY = np.array((3,3,3,3,3))
-#     tempY2 = np.array((1,1,1,1,1))
-#     tempA = np.array((1,1,1,1,1))
-#     tempX = np.array((3,3,3,3,3))
-#
-#
-#     # pass algos take V, a, b, pi. backward doesnt get pi
-#     tempAlpha = forwardPass(tempY2, lowerLambda[0], lowerLambda[1], lowerLambda[2])
-#     tempBeta = backwardPass(tempY2, lowerLambda[0], lowerLambda[1])
-#     p_something = checkP(P, tempX, tempY2, tempA, 5)
-#     print(p_something)
-#
-#
-#
-#     tempN = tempAlpha[2][0] * tempBeta[2][0] * p_something
-#     # print(tempN)
