@@ -3,6 +3,7 @@
 import numpy as np
 import random
 import helpers
+import time
 
 # TODO:
 # use anaconda to add notes/documentation
@@ -13,14 +14,17 @@ import helpers
 # Find numObservations dynamically. The 3 different observations (T1,T2,T3... T=temp not time)
 # Don't need to do forward/backward pass algos for all n. It does it already
 # Create class(es) to contain methods. Improve project structure
-
+# Try with longer T=10
+# Check attacker parameters, make sure they match paper
+# Implement HMM learn library, test forward pass. Compare with Chema's code
 
 # Check forward/backward pass accuracy. Compare to online examples
 
 
 # QUESTIONS:
 # Time vs space complexity trade off when storing alpha/beta for all Y. This could be very large wiwth long observation sequence. Just store alpha of timeOfInterest
-# About hmmlearn, is frameprob simply X
+# Why are hmm.alpha values negative? How to implement scaling/log techniques
+
 
 #NOTES:
 # IMPLEMENTED 0 BASED INDEXING FOR ALL VARIABLES: X,Y,P
@@ -156,17 +160,17 @@ def algo4(X, K, upperLambda, lowerLambda, P, timeOfInterest, c):
 
         for n in range(N):
             for y in range(Y):
-                y_list = create_seq(y, 3, T)
-                # print(y_list)
-
-                # forward/backward algos take V, a, b, pi. backward doesnt get pi
-                tempAlpha = forwardPass(y_list, lowerLambda[0], lowerLambda[1], lowerLambda[2])
-                tempBeta = backwardPass(y_list, lowerLambda[0], lowerLambda[1])
+                y_list = create_seq(y, 3, T) #TODO: 2nd parameter should be number rows of emission matrix
                 p_something = checkP(P, X, y_list, a_list, T)
 
-                N_list[n] += (tempAlpha[timeOfInterest][n] * tempBeta[timeOfInterest][n] * p_something)
-                # print("\nalpha\n",tempAlpha)
-                # print("\nbeta\n",tempBeta)
+                if p_something:
+                    tempAlpha = forwardPass(y_list, lowerLambda[0], lowerLambda[1], lowerLambda[2])
+                    tempBeta = backwardPass(y_list, lowerLambda[0], lowerLambda[1])
+
+                    N_list[n] += (tempAlpha[timeOfInterest][n] * tempBeta[timeOfInterest][n])
+                    # print(tempAlpha[timeOfInterest][n] , tempBeta[timeOfInterest][n])
+                    # print("\nalpha\n",tempAlpha)
+                    # print("\nbeta\n",tempBeta)
 
             u_list.append((N_list[n] - pHat[n]) * (N_list[n] - pHat[n]))
 
@@ -179,10 +183,12 @@ def algo4(X, K, upperLambda, lowerLambda, P, timeOfInterest, c):
 
         u_list_sum.append(sum)
 
+        # Find attack with highest utility
     max = u_list_sum[0]
     max_index = 0
     for a in range(A):
         print(u_list_sum[a])
+        print("u[",a,"]: ", u_list_sum[a], file=f)
         if u_list_sum[a] > max:
             max = u_list_sum[a]
             max_index = a
@@ -192,7 +198,7 @@ def algo4(X, K, upperLambda, lowerLambda, P, timeOfInterest, c):
 
 
 
-X = np.array((0,1,2,2,1))
+X = np.array((0,1,2,2,1,0,1,2,1,1))
 P = np.array(((0,1,1),(1,2,1),(2,2,1),(0,0,0),(1,1,0),(2,2,0)))
 # poisoining outcome
 
@@ -215,8 +221,19 @@ estimate1 = [transition1, emission1, initial1]
 estimate2 = [transition2, emission2, initial2]
 upperLambda = [estimate1, estimate2]
 
+f = open("results.txt", "w")
 
 # X, number of model estimates, all attacker model estimates, attacker model, P, time of interest, cost
+start = time.time()
 a_star = algo4(X, 2, upperLambda, lowerLambda, P, 4, 0.00000003)
+elapsed = time.time()-start
 
 print(a_star)
+print("\noptimal attack: ", a_star,file=f)
+
+print(elapsed)
+print("\nexecution time: ", elapsed, file=f)
+
+
+
+f.close()
