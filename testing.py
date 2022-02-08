@@ -1,42 +1,22 @@
 import numpy as np
+import pytest
+from scipy import special
+from hmmlearn.base import _BaseHMM
+from hmmlearn import hmm
+import random
 
 
 
+# frameprob = np.asarray([[0.9, 0.2],[0.9, 0.2],[0.1, 0.8],[0.9, 0.2],[0.9, 0.2]])
+# model = hmm.GaussianHMM(n_components=2, covariance_type="full")
+# model.fit(frameprob)
+# model._do_forward_pass(frameprob)
+#
+#
+# Z = _BaseHMM._do_forward_pass(model,frameprob)
+# print(Z)
 
-'''
-Say a=1,0,0,1,0
-
-d=State F
-
-For all Y====(T1,T1,T1,T2,T3)
-Say a=1,0,0,1,0 (1 out of 32)
-d==State F or M
-State F
-For all Y—3^5–243 alternatives
-Y=(T1,T1,T1,T1,T1)
-Y: modified data.
-HMMlearn: alpha, beta for data of Y=(T1,T1,T1,T1,T1) and state F
-Using Attacckers own HMM parametrization
-P(Y|X,a)
-Tahir Ekin to Me (Direct Message) (11:51 AM)
-PApYt“T2|Xt“T1,at“1)=1;PApYt“T3|Xt“T2,at“1)=1;PApYt“T3|Xt“T3,at“1)=1;PApYt“T1|Xt“T1,at“0)=1;PApYt“T2|Xt“T2,at“0)=1;PApYt“T3|Xt“T3,at“0)=1 for allt“1,..,T.PApYt“yt|Xt“xt,atqare equal to zero for remaining combinations
-X given
-X= T1, T2, T3,T3,T2
-Tahir Ekin to Me (Direct Message) (11:53 AM)
-P(Y1=T1| X1=T1, a=1)
-P(Y2=T1 | X2=T2,a=0)
-P( Y|a,X)
-
-
-Say a=1,0,0,1,0
-c=1000
-dolalrs
-dollars
-c=250 $
-a=1,0,0,1,0
-c(a)=1*250+0+0+1*250+0
-'''
-
+print("HI")
 
 
 
@@ -61,396 +41,119 @@ c(a)=1*250+0+0+1*250+0
 # model3.means_ = np.array([[0.10, 0.05, 0.85], [0.35, 0.35, 0.30]]) #TODO is this B???
 
 
+import hmmalgo4 as myhmm
 
-def convert_number_system(input_number, input_base, output_base):
-    '''
-    function that calculates numbers from one base to the other
-    returns: int, converted number
-    '''
-
-    #list that holds the numbers to output in the end
-    remainder_list = []
-
-    #start value for sum_base_10. All calculations go thorugh base-10.
-    sum_base_10 = 0
-
-    #validate_input
+import numpy as np
+from hmmlearn import hmm
 
 
-    if output_base == 2:
-        binary_repr = bin(input_number)
-        return (binary_repr[2:])
+class HMM(hmm.MultinomialHMM):
 
-    # we coulc use python's built in hex(), but it is more fun not to...
-    #if output_base == 16:
-        #hex_repr = hex(input_number)
-        #return hex_repr[2:]
+    def alpha(self, X):
 
-    # we want to convert to base-10 before the actual calculation:
-    elif input_base != 10:
+        alphas = self._do_forward_pass(
+            self._compute_log_likelihood(X) )[1]
 
-        # reverse the string to start calculating from the least significant number
-        reversed_input_number = input_number[::-1]
+        return alphas
 
-        #check if user typed in letter outside HEX range.
-        hex_helper_dict = {'a' : 10 , 'b' : 11 , 'c' : 12 , 'd' : 13 , 'e' : 14 , 'f' : 15}
+    def beta(self, X):
 
+        betas = self._do_backward_pass(
+            self._compute_log_likelihood(X) )
 
-        for index, number in enumerate(reversed_input_number):
-            for key,value in hex_helper_dict.items():
-                if str(number).lower() == key:
-                    number = value
+            # probability of observing this data given the parameters
+            # Log P(X| theta)
+            # Look at problem 1 in Rabiner paper
 
-            sum_base_10 += (int(number)*(int(input_base)**index))
-
-    # if the number is already in Base-10, we can start the convertion
-    elif input_base == 10:
-        sum_base_10 = int(input_number)
+        return betas
 
 
-    # we loop through until we hit 0. When we hit 0, we have our number.
-    while sum_base_10 > 0:
-
-        #find number to pass further down the loop
-        divided = sum_base_10// int(output_base)
-
-        #find remainder to keep
-        remainder_list.append(str(sum_base_10 % int(output_base)))
-
-        # the new value to send to the next iteration
-        sum_base_10 = divided
+if __name__ == "__main__":
 
 
-    #fix the list and send a number:
-    return_number = ''
+    transition = np.array(((0.90, 0.10), (0.05, 0.95)))
+    emission = np.array(((0.15, 0.8, 0.05), (0.3, 0.2, 0.5)))
+    priors = np.array((0.99, 0.01))
 
-    # if the user asked for a Hexadesimal output, we need to convert
-    # any number from 10 and up.
-    if output_base == 16:
-        hex_dict = {10 : 'a' , 11 : 'b' , 12 : 'c' , 13 : 'd' , 14 : 'e' , 15 : 'f'}
+    m = HMM(2)
 
-        #loop through remainder_list and convert 10+ to letters.
-        for index, each in enumerate(remainder_list):
-            for key, value in hex_dict.items():
-                if each == str(key):
-                    remainder_list[index] = value
-
-    #return the number:
-    else:
-        for each in remainder_list[::-1]:
-            return_number += each
-
-        return (return_number)
-    #else:
-        #return ('invalid input... Please Try Again')
+    m.startprob_ = priors
+    m.transmat_ = transition
+    m.emissionprob_ = emission
 
 
 
+    X = np.atleast_2d([0,1,2,2,1]).T
+
+    # print(m.alpha(X))
+    # print(m._compute_log_likelihood(X))
+
+################################################################################
 
 
-def create_y(y, numStates, T):
-    temp = convert_number_system(y, 10, numStates)
-    templength = len(temp)
-    Y = np.zeros(T, dtype=np.int32)
-    i = T-templength
-    for c in temp:
-        Y[i] = ord(c)-48
-        i += 1
+# transition = np.array(((0.5, 0.5), (0.3, 0.7)))
+# emission = np.array(((0.8, 0.2), (0.4, 0.6)))
+# initial = np.array((0.375, 0.625))
+# X1 = np.array((0,0,1))
 
 
-    return Y
 
-for i in range(243):
-    print(create_y(i,3,5))
+transition = np.array(((0.90, 0.10), (0.05, 0.95)))
+emission = np.array(((0.15, 0.8, 0.05), (0.3, 0.2, 0.5)))
+initial = np.array((0.99, 0.01))
+X1 = np.array((0,1,2,2,1))
+
+def forward(V, a, b, initial_distribution):
+    alpha = np.zeros((V.shape[0], a.shape[0]))
+    alpha[0, :] = initial_distribution * b[:, V[0]]
+
+    for t in range(1, V.shape[0]):
+        for j in range(a.shape[0]):
+            # Matrix Computation Steps
+            #                  ((1x2) . (1x2))      *     (1)
+            #                        (1)            *     (1)
+            alpha[t, j] = alpha[t - 1].dot(a[:, j]) * b[j, V[t]]
+
+    return alpha
+
+def backward(V, a, b):
+    beta = np.zeros((V.shape[0], a.shape[0]))
+
+    # setting beta(T) = 1
+    beta[V.shape[0] - 1] = np.ones((a.shape[0]))
+
+    # Loop in backward way from T-1 to
+    # Due to python indexing the actual loop will be T-2 to 0
+    for t in range(V.shape[0] - 2, -1, -1):
+        for j in range(a.shape[0]):
+            beta[t, j] = (beta[t + 1] * b[:, V[t + 1]]).dot(a[j, :])
+
+    return beta
+
+
+
+
+alpha1 = myhmm.forwardPass(X1, transition, emission, initial)
+# alpha2 = forward(X1, transition, emission, initial)
+
+print(alpha1)
+# print(alpha2)
 
 
 
 
 
 
-
-
-
-
-
-
-
-def createY(numStates, obsLen):
-    Y_list = []
-    Y_list.append(np.array([1,1,1,1,1]))
-    Y_list.append(np.array([1,1,1,1,2]))
-    Y_list.append(np.array([1,1,1,1,3]))
-    Y_list.append(np.array([1,1,1,2,1]))
-    Y_list.append(np.array([1,1,1,2,2]))
-    Y_list.append(np.array([1,1,1,2,3]))
-    Y_list.append(np.array([1,1,1,3,1]))
-    Y_list.append(np.array([1,1,1,3,2]))
-    Y_list.append(np.array([1,1,1,3,3]))
-    Y_list.append(np.array([1,1,2,1,1]))
-    Y_list.append(np.array([1,1,2,1,2]))
-    Y_list.append(np.array([1,1,2,1,3]))
-    Y_list.append(np.array([1,1,2,2,1]))
-    Y_list.append(np.array([1,1,2,2,2]))
-    Y_list.append(np.array([1,1,2,2,3]))
-    Y_list.append(np.array([1,1,2,3,1]))
-    Y_list.append(np.array([1,1,2,3,2]))
-    Y_list.append(np.array([1,1,2,3,3]))
-    Y_list.append(np.array([1,1,3,1,1]))
-    Y_list.append(np.array([1,1,3,1,2]))
-    Y_list.append(np.array([1,1,3,1,3]))
-    Y_list.append(np.array([1,1,3,2,1]))
-    Y_list.append(np.array([1,1,3,2,2]))
-    Y_list.append(np.array([1,1,3,2,3]))
-    Y_list.append(np.array([1,1,3,3,1]))
-    Y_list.append(np.array([1,1,3,3,2]))
-    Y_list.append(np.array([1,1,3,3,3]))
-    Y_list.append(np.array([1,2,1,1,1]))
-    Y_list.append(np.array([1,2,1,1,2]))
-    Y_list.append(np.array([1,2,1,1,3]))
-    Y_list.append(np.array([1,2,1,2,1]))
-    Y_list.append(np.array([1,2,1,2,2]))
-    Y_list.append(np.array([1,2,1,2,3]))
-    Y_list.append(np.array([1,2,1,3,1]))
-    Y_list.append(np.array([1,2,1,3,2]))
-    Y_list.append(np.array([1,2,1,3,3]))
-    Y_list.append(np.array([1,2,2,1,1]))
-    Y_list.append(np.array([1,2,2,1,2]))
-    Y_list.append(np.array([1,2,2,1,3]))
-    Y_list.append(np.array([1,2,2,2,1]))
-    Y_list.append(np.array([1,2,2,2,2]))
-    Y_list.append(np.array([1,2,2,2,3]))
-    Y_list.append(np.array([1,2,2,3,1]))
-    Y_list.append(np.array([1,2,2,3,2]))
-    Y_list.append(np.array([1,2,2,3,3]))
-    Y_list.append(np.array([1,2,3,1,1]))
-    Y_list.append(np.array([1,2,3,1,2]))
-    Y_list.append(np.array([1,2,3,1,3]))
-    Y_list.append(np.array([1,2,3,2,1]))
-    Y_list.append(np.array([1,2,3,2,2]))
-    Y_list.append(np.array([1,2,3,2,3]))
-    Y_list.append(np.array([1,2,3,3,1]))
-    Y_list.append(np.array([1,2,3,3,2]))
-    Y_list.append(np.array([1,2,3,3,3]))
-    Y_list.append(np.array([1,3,1,1,1]))
-    Y_list.append(np.array([1,3,1,1,2]))
-    Y_list.append(np.array([1,3,1,1,3]))
-    Y_list.append(np.array([1,3,1,2,1]))
-    Y_list.append(np.array([1,3,1,2,2]))
-    Y_list.append(np.array([1,3,1,2,3]))
-    Y_list.append(np.array([1,3,1,3,1]))
-    Y_list.append(np.array([1,3,1,3,2]))
-    Y_list.append(np.array([1,3,1,3,3]))
-    Y_list.append(np.array([1,3,2,1,1]))
-    Y_list.append(np.array([1,3,2,1,2]))
-    Y_list.append(np.array([1,3,2,1,3]))
-    Y_list.append(np.array([1,3,2,2,1]))
-    Y_list.append(np.array([1,3,2,2,2]))
-    Y_list.append(np.array([1,3,2,2,3]))
-    Y_list.append(np.array([1,3,2,3,1]))
-    Y_list.append(np.array([1,3,2,3,2]))
-    Y_list.append(np.array([1,3,2,3,3]))
-    Y_list.append(np.array([1,3,3,1,1]))
-    Y_list.append(np.array([1,3,3,1,2]))
-    Y_list.append(np.array([1,3,3,1,3]))
-    Y_list.append(np.array([1,3,3,2,1]))
-    Y_list.append(np.array([1,3,3,2,2]))
-    Y_list.append(np.array([1,3,3,2,3]))
-    Y_list.append(np.array([1,3,3,3,1]))
-    Y_list.append(np.array([1,3,3,3,2]))
-    Y_list.append(np.array([1,3,3,3,3]))
-    Y_list.append(np.array([2,1,1,1,1]))
-    Y_list.append(np.array([2,1,1,1,2]))
-    Y_list.append(np.array([2,1,1,1,3]))
-    Y_list.append(np.array([2,1,1,2,1]))
-    Y_list.append(np.array([2,1,1,2,2]))
-    Y_list.append(np.array([2,1,1,2,3]))
-    Y_list.append(np.array([2,1,1,3,1]))
-    Y_list.append(np.array([2,1,1,3,2]))
-    Y_list.append(np.array([2,1,1,3,3]))
-    Y_list.append(np.array([2,1,2,1,1]))
-    Y_list.append(np.array([2,1,2,1,2]))
-    Y_list.append(np.array([2,1,2,1,3]))
-    Y_list.append(np.array([2,1,2,2,1]))
-    Y_list.append(np.array([2,1,2,2,2]))
-    Y_list.append(np.array([2,1,2,2,3]))
-    Y_list.append(np.array([2,1,2,3,1]))
-    Y_list.append(np.array([2,1,2,3,2]))
-    Y_list.append(np.array([2,1,2,3,3]))
-    Y_list.append(np.array([2,1,3,1,1]))
-    Y_list.append(np.array([2,1,3,1,2]))
-    Y_list.append(np.array([2,1,3,1,3]))
-    Y_list.append(np.array([2,1,3,2,1]))
-    Y_list.append(np.array([2,1,3,2,2]))
-    Y_list.append(np.array([2,1,3,2,3]))
-    Y_list.append(np.array([2,1,3,3,1]))
-    Y_list.append(np.array([2,1,3,3,2]))
-    Y_list.append(np.array([2,1,3,3,3]))
-    Y_list.append(np.array([2,2,1,1,1]))
-    Y_list.append(np.array([2,2,1,1,2]))
-    Y_list.append(np.array([2,2,1,1,3]))
-    Y_list.append(np.array([2,2,1,2,1]))
-    Y_list.append(np.array([2,2,1,2,2]))
-    Y_list.append(np.array([2,2,1,2,3]))
-    Y_list.append(np.array([2,2,1,3,1]))
-    Y_list.append(np.array([2,2,1,3,2]))
-    Y_list.append(np.array([2,2,1,3,3]))
-    Y_list.append(np.array([2,2,2,1,1]))
-    Y_list.append(np.array([2,2,2,1,2]))
-    Y_list.append(np.array([2,2,2,1,3]))
-    Y_list.append(np.array([2,2,2,2,1]))
-    Y_list.append(np.array([2,2,2,2,2]))
-    Y_list.append(np.array([2,2,2,2,3]))
-    Y_list.append(np.array([2,2,2,3,1]))
-    Y_list.append(np.array([2,2,2,3,2]))
-    Y_list.append(np.array([2,2,2,3,3]))
-    Y_list.append(np.array([2,2,3,1,1]))
-    Y_list.append(np.array([2,2,3,1,2]))
-    Y_list.append(np.array([2,2,3,1,3]))
-    Y_list.append(np.array([2,2,3,2,1]))
-    Y_list.append(np.array([2,2,3,2,2]))
-    Y_list.append(np.array([2,2,3,2,3]))
-    Y_list.append(np.array([2,2,3,3,1]))
-    Y_list.append(np.array([2,2,3,3,2]))
-    Y_list.append(np.array([2,2,3,3,3]))
-    Y_list.append(np.array([2,3,1,1,1]))
-    Y_list.append(np.array([2,3,1,1,2]))
-    Y_list.append(np.array([2,3,1,1,3]))
-    Y_list.append(np.array([2,3,1,2,1]))
-    Y_list.append(np.array([2,3,1,2,2]))
-    Y_list.append(np.array([2,3,1,2,3]))
-    Y_list.append(np.array([2,3,1,3,1]))
-    Y_list.append(np.array([2,3,1,3,2]))
-    Y_list.append(np.array([2,3,1,3,3]))
-    Y_list.append(np.array([2,3,2,1,1]))
-    Y_list.append(np.array([2,3,2,1,2]))
-    Y_list.append(np.array([2,3,2,1,3]))
-    Y_list.append(np.array([2,3,2,2,1]))
-    Y_list.append(np.array([2,3,2,2,2]))
-    Y_list.append(np.array([2,3,2,2,3]))
-    Y_list.append(np.array([2,3,2,3,1]))
-    Y_list.append(np.array([2,3,2,3,2]))
-    Y_list.append(np.array([2,3,2,3,3]))
-    Y_list.append(np.array([2,3,3,1,1]))
-    Y_list.append(np.array([2,3,3,1,2]))
-    Y_list.append(np.array([2,3,3,1,3]))
-    Y_list.append(np.array([2,3,3,2,1]))
-    Y_list.append(np.array([2,3,3,2,2]))
-    Y_list.append(np.array([2,3,3,2,3]))
-    Y_list.append(np.array([2,3,3,3,1]))
-    Y_list.append(np.array([2,3,3,3,2]))
-    Y_list.append(np.array([2,3,3,3,3]))
-    Y_list.append(np.array([3,1,1,1,1]))
-    Y_list.append(np.array([3,1,1,1,2]))
-    Y_list.append(np.array([3,1,1,1,3]))
-    Y_list.append(np.array([3,1,1,2,1]))
-    Y_list.append(np.array([3,1,1,2,2]))
-    Y_list.append(np.array([3,1,1,2,3]))
-    Y_list.append(np.array([3,1,1,3,1]))
-    Y_list.append(np.array([3,1,1,3,2]))
-    Y_list.append(np.array([3,1,1,3,3]))
-    Y_list.append(np.array([3,1,2,1,1]))
-    Y_list.append(np.array([3,1,2,1,2]))
-    Y_list.append(np.array([3,1,2,1,3]))
-    Y_list.append(np.array([3,1,2,2,1]))
-    Y_list.append(np.array([3,1,2,2,2]))
-    Y_list.append(np.array([3,1,2,2,3]))
-    Y_list.append(np.array([3,1,2,3,1]))
-    Y_list.append(np.array([3,1,2,3,2]))
-    Y_list.append(np.array([3,1,2,3,3]))
-    Y_list.append(np.array([3,1,3,1,1]))
-    Y_list.append(np.array([3,1,3,1,2]))
-    Y_list.append(np.array([3,1,3,1,3]))
-    Y_list.append(np.array([3,1,3,2,1]))
-    Y_list.append(np.array([3,1,3,2,2]))
-    Y_list.append(np.array([3,1,3,2,3]))
-    Y_list.append(np.array([3,1,3,3,1]))
-    Y_list.append(np.array([3,1,3,3,2]))
-    Y_list.append(np.array([3,1,3,3,3]))
-    Y_list.append(np.array([3,2,1,1,1]))
-    Y_list.append(np.array([3,2,1,1,2]))
-    Y_list.append(np.array([3,2,1,1,3]))
-    Y_list.append(np.array([3,2,1,2,1]))
-    Y_list.append(np.array([3,2,1,2,2]))
-    Y_list.append(np.array([3,2,1,2,3]))
-    Y_list.append(np.array([3,2,1,3,1]))
-    Y_list.append(np.array([3,2,1,3,2]))
-    Y_list.append(np.array([3,2,1,3,3]))
-    Y_list.append(np.array([3,2,2,1,1]))
-    Y_list.append(np.array([3,2,2,1,2]))
-    Y_list.append(np.array([3,2,2,1,3]))
-    Y_list.append(np.array([3,2,2,2,1]))
-    Y_list.append(np.array([3,2,2,2,2]))
-    Y_list.append(np.array([3,2,2,2,3]))
-    Y_list.append(np.array([3,2,2,3,1]))
-    Y_list.append(np.array([3,2,2,3,2]))
-    Y_list.append(np.array([3,2,2,3,3]))
-    Y_list.append(np.array([3,2,3,1,1]))
-    Y_list.append(np.array([3,2,3,1,2]))
-    Y_list.append(np.array([3,2,3,1,3]))
-    Y_list.append(np.array([3,2,3,2,1]))
-    Y_list.append(np.array([3,2,3,2,2]))
-    Y_list.append(np.array([3,2,3,2,3]))
-    Y_list.append(np.array([3,2,3,3,1]))
-    Y_list.append(np.array([3,2,3,3,2]))
-    Y_list.append(np.array([3,2,3,3,3]))
-    Y_list.append(np.array([3,3,1,1,1]))
-    Y_list.append(np.array([3,3,1,1,2]))
-    Y_list.append(np.array([3,3,1,1,3]))
-    Y_list.append(np.array([3,3,1,2,1]))
-    Y_list.append(np.array([3,3,1,2,2]))
-    Y_list.append(np.array([3,3,1,2,3]))
-    Y_list.append(np.array([3,3,1,3,1]))
-    Y_list.append(np.array([3,3,1,3,2]))
-    Y_list.append(np.array([3,3,1,3,3]))
-    Y_list.append(np.array([3,3,2,1,1]))
-    Y_list.append(np.array([3,3,2,1,2]))
-    Y_list.append(np.array([3,3,2,1,3]))
-    Y_list.append(np.array([3,3,2,2,1]))
-    Y_list.append(np.array([3,3,2,2,2]))
-    Y_list.append(np.array([3,3,2,2,3]))
-    Y_list.append(np.array([3,3,2,3,1]))
-    Y_list.append(np.array([3,3,2,3,2]))
-    Y_list.append(np.array([3,3,2,3,3]))
-    Y_list.append(np.array([3,3,3,1,1]))
-    Y_list.append(np.array([3,3,3,1,2]))
-    Y_list.append(np.array([3,3,3,1,3]))
-    Y_list.append(np.array([3,3,3,2,1]))
-    Y_list.append(np.array([3,3,3,2,2]))
-    Y_list.append(np.array([3,3,3,2,3]))
-    Y_list.append(np.array([3,3,3,3,1]))
-    Y_list.append(np.array([3,3,3,3,2]))
-    Y_list.append(np.array([3,3,3,3,3]))
-
-    return Y_list
-
-
-def checkP(P, x, y, a, T):
-    prows, pcols = P.shape
-
-    match = 0
-    for t in range(T):
-        for p in range(prows):
-            if (x[t] == P[p][0]) and (y[t] == P[p][1]) and (a[t] == P[p][2]):
-                match = 1
-
-        if match == 0:
-            return 0
-
-        match = 0
-
-    return 1
-
-
-P = np.array(((1,2,1),(2,3,1),(3,3,1),(1,1,0),(2,2,0),(3,3,0)))
-
-X1 = np.array((1,2,3,1,2))
-
-Y1 = np.array((2,3,3,1,2))
-
-A1 = np.array((1,1,1,0,0))
-
-X = np.array((1,2,3,3,2))
-Y = np.array((1,1,2,2,3))
-A = np.array((1,1,1,1,1))
-
-T = len(X)
+# P = np.array(((1,2,1),(2,3,1),(3,3,1),(1,1,0),(2,2,0),(3,3,0)))
+#
+# X1 = np.array((1,2,3,1,2))
+#
+# Y1 = np.array((2,3,3,1,2))
+#
+# A1 = np.array((1,1,1,0,0))
+#
+# X = np.array((1,2,3,3,2))
+# Y = np.array((1,1,2,2,3))
+# A = np.array((1,1,1,1,1))
+#
+# T = len(X)

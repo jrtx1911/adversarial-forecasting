@@ -17,13 +17,25 @@ import time
 # Try with longer T=10
 # Check attacker parameters, make sure they match paper
 # Implement HMM learn library, test forward pass. Compare with Chema's code
+# Add comments in code
+# Check hmm learn testing.py comments for log stuff. Read Rabiner paper
+# Multiply checkP 
 
 # Check forward/backward pass accuracy. Compare to online examples
+# Check 3.1 and 3.1.2
+
+# Try making model params drastic to remove repititon
 
 
 # QUESTIONS:
 # Time vs space complexity trade off when storing alpha/beta for all Y. This could be very large wiwth long observation sequence. Just store alpha of timeOfInterest
 # Why are hmm.alpha values negative? How to implement scaling/log techniques
+# What to use for pi values
+# Running code on server, using extended processing times. Being able to log out
+# Results saved to txt file
+# Moved checkP
+# Execution time greatly increased for T=10
+# Any suggestion on how to debug recurring values? Decrease problem size?
 
 
 #NOTES:
@@ -126,6 +138,7 @@ def algo4(X, K, upperLambda, lowerLambda, P, timeOfInterest, c):
     Y = pow(3, T)
     u_list = []
     u_list_sum = []
+    new_plist = []
 
 
 
@@ -133,13 +146,14 @@ def algo4(X, K, upperLambda, lowerLambda, P, timeOfInterest, c):
     for k in range(K):
 
         for n in range(N):
+            # print("\nk: ",k,", n: ",n)
             #TODO: the model used here should be one of the attackers estimates. not his own model
             alpha = forwardPass(X, upperLambda[k][0], upperLambda[k][1], upperLambda[k][2])
             beta = backwardPass(X, upperLambda[k][0], upperLambda[k][1])
             P_list[n][k] = alpha[timeOfInterest][n] * beta[timeOfInterest][n]
 
             # print("\nalpha\n",alpha)
-            # print("\nbeta\n",beta)
+            # print("beta\n",beta)
 
 
 
@@ -188,7 +202,6 @@ def algo4(X, K, upperLambda, lowerLambda, P, timeOfInterest, c):
     max_index = 0
     for a in range(A):
         print(u_list_sum[a])
-        print("u[",a,"]: ", u_list_sum[a], file=f)
         if u_list_sum[a] > max:
             max = u_list_sum[a]
             max_index = a
@@ -197,43 +210,72 @@ def algo4(X, K, upperLambda, lowerLambda, P, timeOfInterest, c):
 
 
 
+if __name__ == "__main__":
+    X = np.array((0,1,2,2,1))
+    P = np.array(((0,1,1),(1,2,1),(2,2,1),(0,0,0),(1,1,0),(2,2,0)))
+    # poisoining outcome
 
-X = np.array((0,1,2,2,1,0,1,2,1,1))
-P = np.array(((0,1,1),(1,2,1),(2,2,1),(0,0,0),(1,1,0),(2,2,0)))
-# poisoining outcome
+########
+
+    transition = np.array(((0.90, 0.10), (0.05, 0.95)))
+    emission = np.array(((0.15, 0.8, 0.05), (0.3, 0.2, 0.5)))
+    initial = np.array((0.99, 0.01))
+
+    transition1 = np.array(((0.9, 0.1), (0.05, 0.95)))
+    emission1 = np.array(((0.15, 0.8, 0.05), (0.3, 0.2, 0.5)))
+    initial1 = np.array((0.99, 0.01))
+
+    transition2 = np.array(((0.8, 0.2), (0.1, 0.9)))
+    emission2 = np.array(((0.1, 0.7, 0.2), (0.2, 0.3, 0.5)))
+    initial2 = np.array((0.99, 0.1))
+
+    lowerLambda = [transition, emission, initial]
+
+    estimate1 = [transition1, emission1, initial1]
+    estimate2 = [transition2, emission2, initial2]
+    upperLambda = [estimate1, estimate2]
+
+##########
+
+    # NEW MODEL PARAMETERS
+    transition_new = np.array(((0.8, 0.15, 0.05), (0.7, 0.2, 0.1), (0.05, 0.1, 0.85)))
+    emission_new = np.array(((0.15, 0.8, 0.05), (0.2, 0.5, 0.3),(0.3, 0.2, 0.5)))
+    initial_new = np.array((0.95, 0.04, 0.01))
+
+    transition1_new = np.array(((0.6, 0.25, 0.15), (0.5, 0.3, 0.2), (0.01, 0.04, 0.95)))
+    emission1_new = np.array(((0.3, 0.6, 0.1), (0.1, 0.4, 0.5), (0.03, 0.01, 0.96)))
+    initial1_new = np.array((0.98, 0.01, 0.01))
+
+    transition2_new = np.array(((0.8, 0.15, 0.05), (0.7, 0.2, 0.1), (0.05, 0.1, 0.85)))
+    emission2_new = np.array(((0.15, 0.8, 0.05), (0.1, 0.6, 0.3), (0.05, 0.02, 0.93)))
+    initial2_new = np.array((0.8, 0.15, 0.05))
+
+    transition3_new = np.array(((0.95, 0.04, 0.01), (0.9, 0.08, 0.02), (0.5, 0.4, 0.1)))
+    emission3_new = np.array(((0.04, 0.95, 0.01), (0.1, 0.75, 0.15), (0.3, 0.2, 0.5)))
+    initial3_new = np.array((0.7, 0.2, 0.1))
+
+    lowerLambda_new = [transition_new, emission_new, initial_new]
+
+    estimate1_new = [transition1_new, emission1_new, initial1_new]
+    estimate2_new = [transition2_new, emission2_new, initial2_new]
+    upperLambda_new = [estimate1_new, estimate2_new]
+
+############
 
 
-transition = np.array(((0.90, 0.10), (0.05, 0.95)))
-emission = np.array(((0.15, 0.8, 0.05), (0.3, 0.2, 0.5)))
-initial = np.array((0.99, 0.01))
+    f = open("results.txt", "w")
 
-transition1 = np.array(((0.75, 0.25), (0.4, 0.6)))
-emission1 = np.array(((0.2, 0.2, 0.6), (0.1, 0.7, 0.2)))
-initial1 = np.array((0.5, 0.5))
+    # X, number of model estimates, all attacker model estimates, attacker model, P, time of interest, cost
+    start = time.time()
+    a_star = algo4(X, 2, upperLambda_new, lowerLambda_new, P, 2, 0.0000000003)
+    elapsed = time.time()-start
 
-transition2 = np.array(((0.5, 0.5), (0.6, 0.5)))
-emission2 = np.array(((0.1, 0.05, 0.85), (0.35, 0.35, 0.3)))
-initial2 = np.array((0.75, 0.25))
+    print("\noptimal attack: ", a_star)
+    print("\noptimal attack: ", a_star,file=f)
 
-lowerLambda = [transition, emission, initial]
-
-estimate1 = [transition1, emission1, initial1]
-estimate2 = [transition2, emission2, initial2]
-upperLambda = [estimate1, estimate2]
-
-f = open("results.txt", "w")
-
-# X, number of model estimates, all attacker model estimates, attacker model, P, time of interest, cost
-start = time.time()
-a_star = algo4(X, 2, upperLambda, lowerLambda, P, 4, 0.00000003)
-elapsed = time.time()-start
-
-print(a_star)
-print("\noptimal attack: ", a_star,file=f)
-
-print(elapsed)
-print("\nexecution time: ", elapsed, file=f)
+    print("\nexecution time: ", elapsed)
+    print("\nexecution time: ", elapsed, file=f)
 
 
 
-f.close()
+    f.close()
