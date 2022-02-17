@@ -4,6 +4,7 @@ from scipy import special
 from hmmlearn.base import _BaseHMM
 from hmmlearn import hmm
 import random
+import helpers
 
 
 
@@ -16,7 +17,6 @@ import random
 # Z = _BaseHMM._do_forward_pass(model,frameprob)
 # print(Z)
 
-print("HI")
 
 
 
@@ -83,10 +83,10 @@ if __name__ == "__main__":
 
 
 
+
     X = np.atleast_2d([0,1,2,2,1]).T
 
     # print(m.alpha(X))
-    # print(m._compute_log_likelihood(X))
 
 ################################################################################
 
@@ -136,24 +136,39 @@ def backward(V, a, b):
 alpha1 = myhmm.forwardPass(X1, transition, emission, initial)
 # alpha2 = forward(X1, transition, emission, initial)
 
-print(alpha1)
+# print(alpha1)
 # print(alpha2)
 
 
 
+#################################
+
+transition = np.array(((0.90, 0.10), (0.05, 0.95)))
+emission = np.array(((0.15, 0.8, 0.05), (0.3, 0.2, 0.5)))
+initial = np.array((0.99, 0.01))
+
+transition1 = np.array(((0.9, 0.1), (0.05, 0.95)))
+emission1 = np.array(((0.15, 0.8, 0.05), (0.3, 0.2, 0.5)))
+initial1 = np.array((0.99, 0.01))
+
+transition2 = np.array(((0.8, 0.2), (0.1, 0.9)))
+emission2 = np.array(((0.1, 0.7, 0.2), (0.2, 0.3, 0.5)))
+initial2 = np.array((0.99, 0.1))
 
 
+model = HMM(2)
+model.transmat_ = transition
+model.emissionprob_ = emission
+model.startprob_ = initial
 
-# P = np.array(((1,2,1),(2,3,1),(3,3,1),(1,1,0),(2,2,0),(3,3,0)))
-#
-# X1 = np.array((1,2,3,1,2))
-#
-# Y1 = np.array((2,3,3,1,2))
-#
-# A1 = np.array((1,1,1,0,0))
-#
-# X = np.array((1,2,3,3,2))
-# Y = np.array((1,1,2,2,3))
-# A = np.array((1,1,1,1,1))
-#
-# T = len(X)
+model1 = HMM(2)
+model1.transmat_ = transition1
+model1.emissionprob_ = emission1
+model1.startprob_ = initial1
+
+model2 = HMM(2)
+model2.transmat_ = transition2
+model2.emissionprob_ = emission2
+model2.startprob_ = initial2
+
+models = [model, model1, model2]

@@ -4,6 +4,7 @@ import numpy as np
 import random
 import helpers
 import time
+from hmmlearn import hmm
 
 # TODO:
 # use anaconda to add notes/documentation
@@ -16,31 +17,45 @@ import time
 # Create class(es) to contain methods. Improve project structure
 # Try with longer T=10
 # Check attacker parameters, make sure they match paper
-# Implement HMM learn library, test forward pass. Compare with Chema's code
-# Add comments in code
-# Check hmm learn testing.py comments for log stuff. Read Rabiner paper
-# Multiply checkP 
+# Maybe use numpy arrays instead of lists to improve performance
 
-# Check forward/backward pass accuracy. Compare to online examples
-# Check 3.1 and 3.1.2
-
-# Try making model params drastic to remove repititon
+# Check for differences in probabilities
+# Reap Mark Stamps Paper section 6 for using logs. Products become summations
 
 
 # QUESTIONS:
-# Time vs space complexity trade off when storing alpha/beta for all Y. This could be very large wiwth long observation sequence. Just store alpha of timeOfInterest
-# Why are hmm.alpha values negative? How to implement scaling/log techniques
-# What to use for pi values
-# Running code on server, using extended processing times. Being able to log out
-# Results saved to txt file
-# Moved checkP
-# Execution time greatly increased for T=10
-# Any suggestion on how to debug recurring values? Decrease problem size?
+# Where to implement summation instead of multiplcation when using logs in alpha/beta
 
-
-#NOTES:
-# IMPLEMENTED 0 BASED INDEXING FOR ALL VARIABLES: X,Y,P
+# NOTES:
 # Looking for alpha and beta of [timeOfInterest][n]
+
+
+
+
+class HMM(hmm.MultinomialHMM):
+
+    def __init__(self, n_components):
+
+        super().__init__(n_components)
+
+    def alpha_pass(self, X):
+
+        alphas = self._do_forward_pass(
+            self._compute_log_likelihood(X) )[1]
+
+        return alphas
+
+    def beta_pass(self, X):
+
+        betas = self._do_backward_pass(
+            self._compute_log_likelihood(X) )
+
+            # probability of observing this data given the parameters
+            # Log P(X| theta)
+            # Look at problem 1 in Rabiner paper
+
+        return betas
+
 
 
 #taken from http://www.adeveloperdiary.com/data-science/machine-learning/forward-and-backward-algorithm-in-hidden-markov-model/
@@ -76,7 +91,6 @@ def backwardPass(V, a, b):
 
 
 
-
 def create_seq(y, numStatesOfY, T):
     temp = helpers.convert_number_system(y, 10, numStatesOfY)
     templength = len(temp)
@@ -91,7 +105,7 @@ def create_seq(y, numStatesOfY, T):
 
 
 
-def computeCost(c, obsLen, currentA):
+def compute_cost(c, obsLen, currentA):
     cost = 0
     for i in range(obsLen):
         # cost += ord(currentA[i])-48
@@ -100,7 +114,8 @@ def computeCost(c, obsLen, currentA):
     return c * cost
 
 
-def checkP(P, x, y, a, T):
+
+def check_attack_validity(P, x, y, a, T):
     prows, pcols = P.shape
     # print(x[3])
 
@@ -124,22 +139,16 @@ def checkP(P, x, y, a, T):
 
 
 
-
 def algo4(X, K, upperLambda, lowerLambda, P, timeOfInterest, c):
-    A_rows, A_cols = lowerLambda[0].shape
-    N = A_rows # used to be D
-    T = len(X)
+    N = lowerLambda[0].shape[0] # number of possible unobservable states
+    T = len(X) # observation length
     P_list = [[0 for i in range(K)] for j in range(N)]
     pHat = []
-    A = pow(2, T)
-    # A_list = createA(T) # deprecated
-    # C = [] # deprecated
+    A = pow(2, T) # number of possible attack variations
     N_list = np.zeros(N)
-    Y = pow(3, T)
+    Y = pow(3, T) # number of possible observation variations
     u_list = []
     u_list_sum = []
-    new_plist = []
-
 
 
 
@@ -170,18 +179,18 @@ def algo4(X, K, upperLambda, lowerLambda, P, timeOfInterest, c):
     for a in range(A): # all possible attack/not attack variations. 32 possible (00000, 00001, 00010...)
 
         a_list = create_seq(a, 2, T)
-        cost = computeCost(c, T, a_list)
+        cost = compute_cost(c, T, a_list)
 
         for n in range(N):
             for y in range(Y):
                 y_list = create_seq(y, 3, T) #TODO: 2nd parameter should be number rows of emission matrix
-                p_something = checkP(P, X, y_list, a_list, T)
+                attack_valid = check_attack_validity(P, X, y_list, a_list, T)
 
-                if p_something:
+                if attack_valid:
                     tempAlpha = forwardPass(y_list, lowerLambda[0], lowerLambda[1], lowerLambda[2])
                     tempBeta = backwardPass(y_list, lowerLambda[0], lowerLambda[1])
 
-                    N_list[n] += (tempAlpha[timeOfInterest][n] * tempBeta[timeOfInterest][n])
+                    N_list[n] += (tempAlpha[timeOfInterest][n] * tempBeta[timeOfInterest][n])# * random.random()
                     # print(tempAlpha[timeOfInterest][n] , tempBeta[timeOfInterest][n])
                     # print("\nalpha\n",tempAlpha)
                     # print("\nbeta\n",tempBeta)
@@ -210,12 +219,117 @@ def algo4(X, K, upperLambda, lowerLambda, P, timeOfInterest, c):
 
 
 
+def algo4hmm(X, timeOfInterest, c):
+    N = lowerLambda[0].shape[0] # number of possible unobservable states
+    K = len(models) - 1 # the number of attacker model estimates
+    T = len(X) # observation length
+    M = models[0].emissionprob_.shape[1] # set of possible observations
+    A = pow(2, T) # number of possible attack variations
+    Y = pow(M, T) # number of possible observation variations
+
+     # TODO: need better names for these
+    P_list = []
+    pHat = []
+    N_list = np.zeros(N)
+    u_list = []
+    u_list_sum = []
+
+
+
+    gammas = [] # the alpha * beta value for each n and each y. TODO: is gamma the correct name?
+
+
+    # find alpha beta for each attacker model estimate and for each state.
+    # TODO: is create_seq more time consuming than alpha_pass and beta_pass? also consider space vs time complexity
+    for k in range(K):
+
+        alpha = models[k+1].alpha_pass(X)
+        beta = models[k+1].beta_pass(X)
+        temp_p = []
+
+        for n in range(N):
+            temp_p.append(alpha[timeOfInterest][n] * beta[timeOfInterest][n])
+
+        P_list.append(temp_p)
+
+
+
+    # find the average for each n over the two attacker model estimates
+    for n in range (N):
+        sum = 0
+
+        for k in range(K):
+            sum +=  P_list[k][n]
+            # print(P_list[n][k])
+
+        pHat.append(sum / K)
+
+
+    # dont need to find alpha/beta for all A so moved it outside loop
+    for y in range(Y):
+        y_list = create_seq(y, M, T)
+        y_list = np.atleast_2d(y_list).T
+        alpha = models[0].alpha_pass(y_list)
+        beta = models[0].beta_pass(y_list)
+
+        temp_gammas = []
+
+        for n in range(N):
+            temp_gammas.append(alpha[timeOfInterest][n] * beta[timeOfInterest][n])
+
+        gammas.append(temp_gammas)
+
+
+
+
+    for a in range(A): # all possible attack/not attack variations. 32 possible (00000, 00001, 00010...)
+
+        a_list = create_seq(a, 2, T)
+        cost = compute_cost(c, T, a_list)
+
+        for n in range(N):
+            N_list[n] = 0 #TODO: are we sure we want to reset to zero here?
+            for y in range(Y):
+                y_list = create_seq(y, 3, T) #TODO: 2nd parameter should be number rows of emission matrix
+                attack_valid = check_attack_validity(attack_outcomes, X, y_list, a_list, T)
+
+                if attack_valid:
+                    N_list[n] += gammas[y][n]# * random.random() #TODO: double check indexing here
+                    #TODO: I dont think we need to save for all n. only use the value once
+
+            u_list.append((N_list[n] - pHat[n]) * (N_list[n] - pHat[n]))
+            print(u_list[a])
+
+
+        sum = 0
+        for n in range(N):
+            sum += u_list[n]
+
+        sum -= cost
+        u_list_sum.append(sum)
+
+
+    # Find attack with highest utility
+    max = u_list_sum[0]
+    max_index = 0
+    for a in range(A):
+        print(u_list_sum[a])
+        if u_list_sum[a] > max:
+            max = u_list_sum[a]
+            max_index = a
+
+    return max_index
+
+
+
 if __name__ == "__main__":
-    X = np.array((0,1,2,2,1))
-    P = np.array(((0,1,1),(1,2,1),(2,2,1),(0,0,0),(1,1,0),(2,2,0)))
-    # poisoining outcome
+    # X = np.array((0,1,2,2,1))
+    X = np.atleast_2d([0,1,2,2,1]).T
+
+    attack_outcomes = np.array(((0,1,1),(1,2,1),(2,2,1),(0,0,0),(1,1,0),(2,2,0)))
 
 ########
+# Model with 2 states
 
     transition = np.array(((0.90, 0.10), (0.05, 0.95)))
     emission = np.array(((0.15, 0.8, 0.05), (0.3, 0.2, 0.5)))
@@ -236,8 +350,8 @@ if __name__ == "__main__":
     upperLambda = [estimate1, estimate2]
 
 ##########
+# Model with 3 states
 
-    # NEW MODEL PARAMETERS
     transition_new = np.array(((0.8, 0.15, 0.05), (0.7, 0.2, 0.1), (0.05, 0.1, 0.85)))
     emission_new = np.array(((0.15, 0.8, 0.05), (0.2, 0.5, 0.3),(0.3, 0.2, 0.5)))
     initial_new = np.array((0.95, 0.04, 0.01))
@@ -260,21 +374,44 @@ if __name__ == "__main__":
     estimate2_new = [transition2_new, emission2_new, initial2_new]
     upperLambda_new = [estimate1_new, estimate2_new]
 
+
 ############
 
+# Using hmmlearn library
+
+    model = HMM(2)
+    model.transmat_ = transition
+    model.emissionprob_ = emission
+    model.startprob_ = initial
+
+    model1 = HMM(2)
+    model1.transmat_ = transition1
+    model1.emissionprob_ = emission1
+    model1.startprob_ = initial1
+
+    model2 = HMM(2)
+    model2.transmat_ = transition2
+    model2.emissionprob_ = emission2
+    model2.startprob_ = initial2
+
+    models = [model, model1, model2]
+
+############
 
     f = open("results.txt", "w")
 
     # X, number of model estimates, all attacker model estimates, attacker model, P, time of interest, cost
     start = time.time()
-    a_star = algo4(X, 2, upperLambda_new, lowerLambda_new, P, 2, 0.0000000003)
+    # a_star = algo4(X, 2, upperLambda_new, lowerLambda_new, attack_outcomes, 2, 0.0000000005)
+    a_star = algo4hmm(X, 2, 0.0000000005)
+
     elapsed = time.time()-start
 
     print("\noptimal attack: ", a_star)
-    print("\noptimal attack: ", a_star,file=f)
+    print("\noptimal attack: ", a_star,file=f) # print to file
 
     print("\nexecution time: ", elapsed)
-    print("\nexecution time: ", elapsed, file=f)
+    print("\nexecution time: ", elapsed, file=f) # print to file
 
 
 
