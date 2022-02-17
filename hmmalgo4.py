@@ -4,7 +4,7 @@ import numpy as np
 import random
 import helpers
 import time
-from hmmlearn import hmm
+from hmmlearn import hmm # MUST USE hmmlearn version 0.2.6.
 
 # TODO:
 # use anaconda to add notes/documentation
@@ -219,7 +219,7 @@ def algo4(X, K, upperLambda, lowerLambda, P, timeOfInterest, c):
 
 
 
-def algo4hmm(X, timeOfInterest, c):
+def algo4hmm(timeOfInterest, c):
     N = lowerLambda[0].shape[0] # number of possible unobservable states
     K = len(models) - 1 # the number of attacker model estimates
     T = len(X) # observation length
@@ -280,7 +280,7 @@ def algo4hmm(X, timeOfInterest, c):
         gammas.append(temp_gammas)
 
 
-
+    counter = 0
 
     for a in range(A): # all possible attack/not attack variations. 32 possible (00000, 00001, 00010...)
 
@@ -298,7 +298,6 @@ def algo4hmm(X, timeOfInterest, c):
                     #TODO: I dont think we need to save for all n. only use the value once
 
             u_list.append((N_list[n] - pHat[n]) * (N_list[n] - pHat[n]))
-            print(u_list[a])
 
 
         sum = 0
@@ -403,7 +402,7 @@ if __name__ == "__main__":
     # X, number of model estimates, all attacker model estimates, attacker model, P, time of interest, cost
     start = time.time()
     # a_star = algo4(X, 2, upperLambda_new, lowerLambda_new, attack_outcomes, 2, 0.0000000005)
-    a_star = algo4hmm(X, 2, 0.0000000005)
+    a_star = algo4hmm(2, 0.0000000005)
 
     elapsed = time.time()-start
 
