@@ -1,3 +1,6 @@
+import hmmalgo4
+
+
 def convert_number_system(input_number, input_base, output_base):
     '''
     function that calculates numbers from one base to the other
@@ -79,3 +82,23 @@ def convert_number_system(input_number, input_base, output_base):
         return (return_number)
     #else:
         #return ('invalid input... Please Try Again')
+
+
+
+
+
+
+def save_to_file(a_star, elapsed, utilities, X):
+    f = open("results.txt", "w")
+
+    print("X: ", X.T, file=f)
+
+    print("\na    Utility", file=f)
+    print("------------------------", file=f)
+    for idx, util in enumerate(utilities):
+        print(idx, ": ",util, file=f)
+
+    print("\noptimal attack: ", a_star, ": ", hmmalgo4.create_seq(a_star, 2, len(X)), file=f)
+    print("\noptimal attack utility: ", utilities[a_star], file=f)
+    print("\nexecution time: ", elapsed, "seconds", file=f)
+    f.close()

@@ -231,8 +231,8 @@ def algo4hmm(timeOfInterest, c):
     P_list = []
     pHat = []
     N_list = np.zeros(N)
-    u_list = []
-    u_list_sum = []
+    utility = np.zeros(N) # the temp utility for each n for a given attack
+    utilities = np.zeros(A) # the final utilities for each attack, summed over N
 
 
 
@@ -287,8 +287,9 @@ def algo4hmm(timeOfInterest, c):
         a_list = create_seq(a, 2, T)
         cost = compute_cost(c, T, a_list)
 
+        # calculate n(n)
         for n in range(N):
-            N_list[n] = 0 #TODO: are we sure we want to reset to zero here?
+            N_list[n] = 0
             for y in range(Y):
                 y_list = create_seq(y, 3, T) #TODO: 2nd parameter should be number rows of emission matrix
                 attack_valid = check_attack_validity(attack_outcomes, X, y_list, a_list, T)
@@ -297,27 +298,22 @@ def algo4hmm(timeOfInterest, c):
                     N_list[n] += gammas[y][n]# * random.random() #TODO: double check indexing here
                     #TODO: I dont think we need to save for all n. only use the value once
 
-            u_list.append((N_list[n] - pHat[n]) * (N_list[n] - pHat[n]))
+            utility[n] = ((N_list[n] - pHat[n]) * (N_list[n] - pHat[n]))
 
 
-        sum = 0
-        for n in range(N):
-            sum += u_list[n]
-
-        sum -= cost
-        u_list_sum.append(sum)
+        # sum the values over N to get the average for this attack. must be done after calculating each n(n)
+        utilities[a] = utility.sum() - cost
 
 
-    # Find attack with highest utility
-    max = u_list_sum[0]
-    max_index = 0
-    for a in range(A):
-        print(u_list_sum[a])
-        if u_list_sum[a] > max:
-            max = u_list_sum[a]
-            max_index = a
 
-    return max_index
+    # just printing all attack utilities here
+    print("\na    Utility")
+    print("------------------------")
+    for idx, util in enumerate(utilities):
+        print(idx, ": ",util)
+
+
+    return utilities.argmax(), utilities
 
 
 
@@ -397,21 +393,16 @@ if __name__ == "__main__":
 
 ############
 
-    f = open("results.txt", "w")
+    start = time.time()
 
     # X, number of model estimates, all attacker model estimates, attacker model, P, time of interest, cost
-    start = time.time()
     # a_star = algo4(X, 2, upperLambda_new, lowerLambda_new, attack_outcomes, 2, 0.0000000005)
-    a_star = algo4hmm(2, 0.0000000005)
+    a_star, utils = algo4hmm(2, 0.0000000005)
 
     elapsed = time.time()-start
 
-    print("\noptimal attack: ", a_star)
-    print("\noptimal attack: ", a_star,file=f) # print to file
+    print("\noptimal attack: ", a_star, ": ", create_seq(a_star, 2, len(X)))
+    print("\noptimal attack utility: ", utils[a_star])
+    print("\nexecution time: ", elapsed, "seconds\n")
 
-    print("\nexecution time: ", elapsed)
-    print("\nexecution time: ", elapsed, file=f) # print to file
-
-
-
-    f.close()
+    helpers.save_to_file(a_star, elapsed, utils, X)
