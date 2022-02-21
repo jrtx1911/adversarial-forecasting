@@ -1,25 +1,23 @@
 # Created by JCR
 
 import numpy as np
-import random
+#import random
 import helpers
 import time
-from hmmlearn import hmm # MUST USE hmmlearn version 0.2.6.
+from hmmlearn import hmm # MUST USE hmmlearn version 0.2.6
 
 # TODO:
 # use anaconda to add notes/documentation
 # Is n_components the dimensionality of A? in hmmlearn
 # What is covariance_type? in hmmlearn
-# Update checkP() to work with different lengths of attack variations
+# Update check_attack_validity() to work with different probabilities
 # Modify forward/backward algorithm to stop computation at timeOfInterest
-# Find numObservations dynamically. The 3 different observations (T1,T2,T3... T=temp not time)
 # Don't need to do forward/backward pass algos for all n. It does it already
 # Create class(es) to contain methods. Improve project structure
 # Try with longer T=10
 # Check attacker parameters, make sure they match paper
 # Maybe use numpy arrays instead of lists to improve performance
-
-# Check for differences in probabilities
+# Don't use positional arguments, use argument=arg style
 # Reap Mark Stamps Paper section 6 for using logs. Products become summations
 
 
@@ -138,7 +136,7 @@ def check_attack_validity(P, x, y, a, T):
     return 1
 
 
-
+# Old version that doesnt use hmmlearn library. Also non functional. Error is in the use of N_list, u_list, and u_list_sum
 def algo4(X, K, upperLambda, lowerLambda, P, timeOfInterest, c):
     N = lowerLambda[0].shape[0] # number of possible unobservable states
     T = len(X) # observation length
@@ -291,12 +289,12 @@ def algo4hmm(timeOfInterest, c):
         for n in range(N):
             N_list[n] = 0
             for y in range(Y):
-                y_list = create_seq(y, 3, T) #TODO: 2nd parameter should be number rows of emission matrix
+                # TODO: consider moving these two lines to y loop above and saving results of check_attack_validity for each y. Reduces calls to create_seq()
+                y_list = create_seq(y, M, T)
                 attack_valid = check_attack_validity(attack_outcomes, X, y_list, a_list, T)
 
                 if attack_valid:
-                    N_list[n] += gammas[y][n]# * random.random() #TODO: double check indexing here
-                    #TODO: I dont think we need to save for all n. only use the value once
+                    N_list[n] += gammas[y][n] #TODO: multiply by probability of attack success. need to update structure of P
 
             utility[n] = ((N_list[n] - pHat[n]) * (N_list[n] - pHat[n]))
 
@@ -319,7 +317,8 @@ def algo4hmm(timeOfInterest, c):
 
 if __name__ == "__main__":
     # X = np.array((0,1,2,2,1))
-    X = np.atleast_2d([0,1,2,2,1]).T
+    # X = np.atleast_2d([0,1,2,2,1]).T
+    X = np.atleast_2d([0,1,2,2,1,1,0,2,2,0]).T
 
     attack_outcomes = np.array(((0,1,1),(1,2,1),(2,2,1),(0,0,0),(1,1,0),(2,2,0)))
 
@@ -372,7 +371,7 @@ if __name__ == "__main__":
 
 ############
 
-# Using hmmlearn library
+# Using hmmlearn library and the 2 state model from above
 
     model = HMM(2)
     model.transmat_ = transition
@@ -393,15 +392,18 @@ if __name__ == "__main__":
 
 ############
 
-    start = time.time()
 
+
+    start = time.time()
+    # parameters:
     # X, number of model estimates, all attacker model estimates, attacker model, P, time of interest, cost
     # a_star = algo4(X, 2, upperLambda_new, lowerLambda_new, attack_outcomes, 2, 0.0000000005)
     a_star, utils = algo4hmm(2, 0.0000000005)
+    print("UNIQUES: ",len(np.unique(utils)))
 
     elapsed = time.time()-start
 
-    print("\noptimal attack: ", a_star, ": ", create_seq(a_star, 2, len(X)))
+    print("\noptimal attack: ", a_star, ": ", create_seq(a_star, 5, len(X)))
     print("\noptimal attack utility: ", utils[a_star])
     print("\nexecution time: ", elapsed, "seconds\n")
 
