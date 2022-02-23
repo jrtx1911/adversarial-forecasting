@@ -23,6 +23,7 @@ from hmmlearn import hmm # MUST USE hmmlearn version 0.2.6
 
 # QUESTIONS:
 # Where to implement summation instead of multiplcation when using logs in alpha/beta
+# Alpha + beta not alpha * beta. Use predict proba hmm learn function to verify results
 
 # NOTES:
 # Looking for alpha and beta of [timeOfInterest][n]
@@ -218,6 +219,7 @@ def algo4(X, K, upperLambda, lowerLambda, P, timeOfInterest, c):
 
 
 def algo4hmm(timeOfInterest, c):
+    # Trying to match notation of Mark Stamp's paper and Tahir Ekin's batch paper
     N = lowerLambda[0].shape[0] # number of possible unobservable states
     K = len(models) - 1 # the number of attacker model estimates
     T = len(X) # observation length
@@ -246,13 +248,14 @@ def algo4hmm(timeOfInterest, c):
         temp_p = []
 
         for n in range(N):
-            temp_p.append(alpha[timeOfInterest][n] * beta[timeOfInterest][n])
+            temp_p.append(alpha[timeOfInterest][n] + beta[timeOfInterest][n])
 
         P_list.append(temp_p)
 
 
 
     # find the average for each n over the two attacker model estimates
+    #TODO: Use numpy sum function
     for n in range (N):
         sum = 0
 
@@ -273,7 +276,7 @@ def algo4hmm(timeOfInterest, c):
         temp_gammas = []
 
         for n in range(N):
-            temp_gammas.append(alpha[timeOfInterest][n] * beta[timeOfInterest][n])
+            temp_gammas.append(alpha[timeOfInterest][n] + beta[timeOfInterest][n])
 
         gammas.append(temp_gammas)
 
@@ -281,7 +284,7 @@ def algo4hmm(timeOfInterest, c):
     counter = 0
 
     for a in range(A): # all possible attack/not attack variations. 32 possible (00000, 00001, 00010...)
-
+        print("a: ", a)
         a_list = create_seq(a, 2, T)
         cost = compute_cost(c, T, a_list)
 
@@ -322,7 +325,8 @@ if __name__ == "__main__":
 
     attack_outcomes = np.array(((0,1,1),(1,2,1),(2,2,1),(0,0,0),(1,1,0),(2,2,0)))
 
-########
+################################################################################
+
 # Model with 2 states
 
     transition = np.array(((0.90, 0.10), (0.05, 0.95)))
@@ -343,7 +347,27 @@ if __name__ == "__main__":
     estimate2 = [transition2, emission2, initial2]
     upperLambda = [estimate1, estimate2]
 
-##########
+
+    # Using hmmlearn library and the 2 state model from above
+
+    model = HMM(2)
+    model.transmat_ = transition
+    model.emissionprob_ = emission
+    model.startprob_ = initial
+
+    model1 = HMM(2)
+    model1.transmat_ = transition1
+    model1.emissionprob_ = emission1
+    model1.startprob_ = initial1
+
+    model2 = HMM(2)
+    model2.transmat_ = transition2
+    model2.emissionprob_ = emission2
+    model2.startprob_ = initial2
+
+    # models = [model, model1, model2]
+
+################################################################################
 # Model with 3 states
 
     transition_new = np.array(((0.8, 0.15, 0.05), (0.7, 0.2, 0.1), (0.05, 0.1, 0.85)))
@@ -369,28 +393,34 @@ if __name__ == "__main__":
     upperLambda_new = [estimate1_new, estimate2_new]
 
 
+    # Using hmmlearn library and the 3 state model from above
+
+    model_new = HMM(3)
+    model_new.transmat_ = transition_new
+    model_new.emissionprob_ = emission_new
+    model_new.startprob_ = initial_new
+
+    model1_new = HMM(3)
+    model1_new.transmat_ = transition1_new
+    model1_new.emissionprob_ = emission1_new
+    model1_new.startprob_ = initial1_new
+
+    model2_new = HMM(3)
+    model2_new.transmat_ = transition2_new
+    model2_new.emissionprob_ = emission2_new
+    model2_new.startprob_ = initial2_new
+
+    model3_new = HMM(3)
+    model3_new.transmat_ = transition3_new
+    model3_new.emissionprob_ = emission3_new
+    model3_new.startprob_ = initial3_new
+
+    models = [model_new, model1_new, model2_new, model3_new]
+
+
 ############
 
-# Using hmmlearn library and the 2 state model from above
 
-    model = HMM(2)
-    model.transmat_ = transition
-    model.emissionprob_ = emission
-    model.startprob_ = initial
-
-    model1 = HMM(2)
-    model1.transmat_ = transition1
-    model1.emissionprob_ = emission1
-    model1.startprob_ = initial1
-
-    model2 = HMM(2)
-    model2.transmat_ = transition2
-    model2.emissionprob_ = emission2
-    model2.startprob_ = initial2
-
-    models = [model, model1, model2]
-
-############
 
 
 
@@ -403,7 +433,7 @@ if __name__ == "__main__":
 
     elapsed = time.time()-start
 
-    print("\noptimal attack: ", a_star, ": ", create_seq(a_star, 5, len(X)))
+    print("\noptimal attack: ", a_star, ": ", create_seq(a_star, 2, len(X)))
     print("\noptimal attack utility: ", utils[a_star])
     print("\nexecution time: ", elapsed, "seconds\n")
 
